@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Afficheur d'image</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { 
+      display: flex; 
+      flex-direction: column;
+      align-items: center; 
+      justify-content: center; 
+      min-height: 100vh; 
+      background: #f5f5f5;
+      padding: 16px;
+      font-family: system-ui, Segoe UI, Roboto;
+    }
+    .container {
+      background: white;
+      border-radius: 8px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+      padding: 20px;
+      max-width: 90vw;
+      max-height: 90vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 16px;
+    }
+    img { 
+      max-width: 100%; 
+      max-height: 70vh; 
+      border-radius: 6px;
+      object-fit: contain;
+    }
+    .error { 
+      color: #dc2626; 
+      font-size: 16px;
+      text-align: center;
+    }
+    .info {
+      color: #666;
+      font-size: 14px;
+      text-align: center;
+    }
+    a {
+      color: #2563eb;
+      text-decoration: none;
+      padding: 8px 12px;
+      border: 1px solid #2563eb;
+      border-radius: 6px;
+      display: inline-block;
+    }
+    a:hover { background: #e8f1fd; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <!-- L'image s'affichera ici automatiquement -->
+    <div id="content"></div>
+    <!-- Lien vers le générateur QR -->
+    <a href="index.html">← Générer un nouveau QR</a>
+  </div>
+
+  <script>
+    // Récupère les paramètres GET
+    const params = new URLSearchParams(window.location.search);
+    const imageUrl = params.get('img');
+    const content = document.getElementById('content');
+
+    if (!imageUrl) {
+      content.innerHTML = '<div class="error">⚠️ Pas d\'image spécifiée. Utilisez le paramètre ?img=URL</div>';
+    } else {
+      // Essayer de charger l'image
+      const img = new Image();
+      
+      img.onload = () => {
+        // Image chargée avec succès
+        content.appendChild(img);
+      };
+      
+      img.onerror = () => {
+        // Erreur de chargement (CORS, URL invalide, etc.)
+        content.innerHTML = `
+          <div class="error">⚠️ Impossible de charger l'image</div>
+          <div class="info">
+            <p>L'URL fournie est invalide ou protégée.</p>
+            <p style="font-size:12px; margin-top:8px; word-break:break-all;">${imageUrl}</p>
+          </div>
+        `;
+      };
+      
+      // Charger l'image (doit être CORS-accessible)
+      img.src = imageUrl;
+    }
+  </script>
+</body>
+</html>

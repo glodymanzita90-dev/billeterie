@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Générateur de QR Code (Google Drive)</title>
+  <style>
+    /* Styles simples et responsive */
+    :root{font-family:system-ui,Segoe UI,Roboto,"Helvetica Neue",Arial}
+    body{margin:0;padding:24px;display:flex;flex-direction:column;gap:16px;align-items:center}
+    .card{max-width:520px;width:92%;box-shadow:0 6px 18px rgba(0,0,0,.08);padding:18px;border-radius:10px}
+    label{display:block;font-weight:600;margin-bottom:8px}
+    input[type="text"]{width:100%;padding:10px;border-radius:6px;border:1px solid #ccc}
+    .controls{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+    button{padding:10px 14px;border-radius:8px;border:0;background:#2563eb;color:#fff;cursor:pointer}
+    button[disabled]{opacity:.6;cursor:default}
+    .qr-wrap{margin-top:16px;display:flex;flex-direction:column;align-items:center;gap:8px}
+    .qr-container{width:100%;max-width:420px;border-radius:8px;padding:12px;background:#fff;display:flex;justify-content:center;align-items:center}
+    canvas{width:100%;height:auto;display:block}
+    .hint{font-size:13px;color:#444}
+    footer{font-size:13px;color:#666;margin-top:8px}
+  </style>
+  <!-- Librairie QRCode via CDN. Utilise la version 'qrcode' (browser build). -->
+  <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.1/build/qrcode.min.js"></script>
+</head>
+<body>
+  <div class="card">
+    <h2>Générateur de QR Code</h2>
+    <p class="hint">Collez plusieurs IDs Google Drive ou URLs (une par ligne). Pour chaque entrée, une vignette et un QR seront générés — chaque QR pointera directement vers l'image Drive correspondante.</p>
+
+    <label for="idsInput">IDs / URLs Google Drive (séparez par saut de ligne ou virgule)</label>
+    <textarea id="idsInput" rows="6" style="width:100%;padding:10px;border-radius:6px;border:1px solid #ccc">1c_E1EqkL8I78AJzbKXsaIDciGNHFbTUK
+https://drive.google.com/file/d/1a2b3C4d5E6f7G8H9I0j/view</textarea>
+
+    <div class="controls">
+      <button id="generateAllBtn">Générer pour toutes</button>
+      <button id="clearBtn">Effacer</button>
+      <button id="helpBtn">Aide</button>
+    </div>
+
+    <div id="gallery" style="margin-top:12px;display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px"></div>
+
+    <footer>Remarque: fournissez l'ID de fichier (ou l'URL/partage). Les dossiers Drive ne sont pas utilisables comme image directe. Chaque QR encodera le lien direct `https://drive.google.com/uc?export=view&id=...` pour l'image correspondante.</footer>
+  </div>
+  <script src="script.js"></script>
+</body>
+</html>

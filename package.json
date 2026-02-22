@@ -1,0 +1,15 @@
+{
+  "name": "recenssement-qr-tests",
+  "version": "1.0.0",
+  "description": "Tests automatisés pour le générateur de QR (jsdom + qrcode)",
+  "main": "index.js",
+  "scripts": {
+    "test": "node test/test.js"
+  },
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "jsdom": "^22.1.0",
+    "qrcode": "^1.5.1"
+  }
+}
