@@ -1,7 +1,7 @@
 {
-  "name": "recenssement-qr-tests",
+  "name": "recenssement-qr-local-images",
   "version": "1.0.0",
-  "description": "Tests automatisés pour le générateur de QR (jsdom + qrcode)",
+  "description": "Générateur de QR codes pour images locales hébergées sur Netlify",
   "main": "index.js",
   "scripts": {
     "test": "node test/test.js"
