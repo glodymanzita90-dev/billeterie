@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # Générateur de QR Code (client-side)
 
 Ce petit projet génère un QR Code dynamique (client-side) contenant un lien direct vers une image (par exemple hébergée sur Google Drive). Le QR peut être téléchargé en PNG.
@@ -36,3 +37,7 @@ Si vous voulez que je :
 - ajoute une version serveur (Node) pour servir la page,
 - ou intègre un mode pour générer des QR en SVG au lieu de PNG,
 dites-le et je l'ajoute.
+=======
+# billeterie
+création de billet pour activité
+>>>>>>> 470f470eb4ef42d90d19f70ae1fa4748dde272da
