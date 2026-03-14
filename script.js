@@ -4,6 +4,7 @@
 
 const idsInput = document.getElementById('idsInput');
 const generateAllBtn = document.getElementById('generateAllBtn');
+const downloadAllQrBtn = document.getElementById('downloadAllQrBtn');
 const clearBtn = document.getElementById('clearBtn');
 const helpBtn = document.getElementById('helpBtn');
 const gallery = document.getElementById('gallery');
@@ -117,9 +118,40 @@ async function createCardForToken(token){
   return card;
 }
 
-// Parse input (séparateurs: newline, comma, semicolon)
-function parseTokens(text){
-  return text.split(/\r?\n|,|;/).map(t=>t.trim()).filter(Boolean);
+async function downloadAllQRs(){
+  const cards = gallery.querySelectorAll('.card');
+  if(cards.length === 0){
+    alert('Aucun QR généré. Générez d\'abord les QR.');
+    return;
+  }
+
+  const zip = new JSZip();
+  let count = 0;
+
+  for(const card of cards){
+    const img = card.querySelector('img[alt^="QR"]');
+    if(img && img.src.startsWith('data:image/png;base64,')){
+      const name = img.alt.replace('QR ', '').replace(/\.[^/.]+$/, ""); // Nom sans extension
+      const base64Data = img.src.split(',')[1];
+      zip.file(`qr_${name}.png`, base64Data, {base64: true});
+      count++;
+    }
+  }
+
+  if(count === 0){
+    alert('Aucun QR valide trouvé.');
+    return;
+  }
+
+  const content = await zip.generateAsync({type: 'blob'});
+  const url = URL.createObjectURL(content);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'all_qrcodes.zip';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
 }
 
 async function generateAll(){
@@ -142,6 +174,7 @@ async function generateAll(){
 }
 
 generateAllBtn.addEventListener('click', ()=>{ generateAll(); });
+downloadAllQrBtn.addEventListener('click', ()=>{ downloadAllQRs(); });
 clearBtn.addEventListener('click', ()=>{ idsInput.value = ''; gallery.innerHTML=''; });
 helpBtn.addEventListener('click', ()=>{ alert('Collez un nom de fichier d\'image (ex: image.jpg) situé dans le dossier images/. Un nom par ligne ou séparés par virgule.'); });
 

@@ -22,6 +22,8 @@
   </style>
   <!-- Librairie QRCode via CDN. Utilise la version 'qrcode' (browser build). -->
   <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.1/build/qrcode.min.js"></script>
+  <!-- Librairie JSZip pour créer des archives ZIP -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 </head>
 <body>
   <div class="card">
@@ -34,6 +36,7 @@ image2.png</textarea>
 
     <div class="controls">
       <button id="generateAllBtn">Générer pour toutes</button>
+      <button id="downloadAllQrBtn">Télécharger tous les QR</button>
       <button id="clearBtn">Effacer</button>
       <button id="helpBtn">Aide</button>
     </div>
