@@ -30,32 +30,20 @@ async function createCardForToken(token){
   const name = token.replace(/\.[^/.]+$/, ""); // Nom sans extension pour le QR
   // Card elements
   const card = document.createElement('div');
-  card.style.border = '1px solid #e6e6e6';
-  card.style.padding = '10px';
-  card.style.borderRadius = '8px';
-  card.style.background = '#fff';
-  card.style.display = 'flex';
-  card.style.flexDirection = 'column';
-  card.style.gap = '8px';
+  card.className = 'gallery-item';
 
   const img = document.createElement('img');
   img.src = imageUrl;
   img.alt = token;
-  img.style.width = '100%';
-  img.style.height = '140px';
-  img.style.objectFit = 'cover';
+  img.className = 'image-preview';
   img.onerror = ()=>{ img.style.objectFit = 'contain'; img.style.background='#fafafa'; };
 
   const info = document.createElement('div');
-  info.style.display = 'flex';
-  info.style.justifyContent = 'space-between';
-  info.style.alignItems = 'center';
+  info.className = 'info';
 
   const idLabel = document.createElement('div');
+  idLabel.className = 'name';
   idLabel.textContent = token;
-  idLabel.style.fontSize = '12px';
-  idLabel.style.color = '#333';
-  idLabel.style.wordBreak = 'break-all';
 
   const btns = document.createElement('div');
   btns.style.display = 'flex';
@@ -71,29 +59,19 @@ async function createCardForToken(token){
 
   const qrImg = document.createElement('img');
   qrImg.alt = 'QR ' + token;
-  qrImg.style.width = '120px';
-  qrImg.style.height = '120px';
-  qrImg.style.objectFit = 'contain';
+  qrImg.className = 'qr-image';
   if(qrDataURL) qrImg.src = qrDataURL;
 
 
   const downloadQrBtn = document.createElement('a');
+  downloadQrBtn.className = 'download-btn';
   downloadQrBtn.textContent = 'Télécharger QR';
   downloadQrBtn.href = qrDataURL || '#';
   downloadQrBtn.download = `qr_${name}.png`;
-  downloadQrBtn.style.padding = '6px 8px';
-  downloadQrBtn.style.background = '#2563eb';
-  downloadQrBtn.style.color = '#fff';
-  downloadQrBtn.style.borderRadius = '6px';
-  downloadQrBtn.style.textDecoration = 'none';
 
   const copyLinkBtn = document.createElement('button');
+  copyLinkBtn.className = 'copy-btn';
   copyLinkBtn.textContent = 'Copier lien';
-  copyLinkBtn.style.padding = '6px 8px';
-  copyLinkBtn.style.borderRadius = '6px';
-  copyLinkBtn.style.border = '0';
-  copyLinkBtn.style.background = '#efefef';
-  // Copier le lien direct de l'image (pas le viewer)
   copyLinkBtn.onclick = async ()=>{
     try{ await navigator.clipboard.writeText(imageUrl); copyLinkBtn.textContent = 'Copié!'; setTimeout(()=>copyLinkBtn.textContent='Copier lien',1200); }catch(e){ alert('Impossible de copier'); }
   };
@@ -104,22 +82,19 @@ async function createCardForToken(token){
   info.appendChild(idLabel);
   info.appendChild(btns);
 
-  const bottom = document.createElement('div');
-  bottom.style.display = 'flex';
-  bottom.style.justifyContent = 'space-between';
-  bottom.style.alignItems = 'center';
+  const qrContainer = document.createElement('div');
+  qrContainer.className = 'qr-container';
+  qrContainer.appendChild(qrImg);
 
-  bottom.appendChild(qrImg);
-  bottom.appendChild(img);
-
+  card.appendChild(img);
+  card.appendChild(qrContainer);
   card.appendChild(info);
-  card.appendChild(bottom);
 
   return card;
 }
 
 async function downloadAllQRs(){
-  const cards = gallery.querySelectorAll('.card');
+  const cards = gallery.querySelectorAll('.gallery-item');
   if(cards.length === 0){
     alert('Aucun QR généré. Générez d\'abord les QR.');
     return;
