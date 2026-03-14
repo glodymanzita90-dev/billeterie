@@ -25,6 +25,8 @@ function getImageUrl(filename){
 async function createCardForToken(token){
   const imageUrl = getImageUrl(token);
   if(!imageUrl) return null;
+
+  const name = token.replace(/\.[^/.]+$/, ""); // Nom sans extension pour le QR
   // Card elements
   const card = document.createElement('div');
   card.style.border = '1px solid #e6e6e6';
@@ -77,7 +79,7 @@ async function createCardForToken(token){
   const downloadQrBtn = document.createElement('a');
   downloadQrBtn.textContent = 'Télécharger QR';
   downloadQrBtn.href = qrDataURL || '#';
-  downloadQrBtn.download = `qr_${token}.png`;
+  downloadQrBtn.download = `qr_${name}.png`;
   downloadQrBtn.style.padding = '6px 8px';
   downloadQrBtn.style.background = '#2563eb';
   downloadQrBtn.style.color = '#fff';
