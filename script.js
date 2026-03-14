@@ -8,10 +8,112 @@ const downloadAllQrBtn = document.getElementById('downloadAllQrBtn');
 const clearBtn = document.getElementById('clearBtn');
 const helpBtn = document.getElementById('helpBtn');
 const gallery = document.getElementById('gallery');
+const dropZone = document.getElementById('dropZone');
+const fileInput = document.getElementById('fileInput');
 
 function debounce(fn, wait){
   let t;
   return (...args)=>{ clearTimeout(t); t = setTimeout(()=>fn(...args), wait); };
+}
+
+// Gestion du drag & drop
+dropZone.addEventListener('click', () => fileInput.click());
+dropZone.addEventListener('dragover', (e) => {
+  e.preventDefault();
+  dropZone.style.borderColor = 'var(--primary-color)';
+  dropZone.style.background = '#eef2ff';
+});
+dropZone.addEventListener('dragleave', () => {
+  dropZone.style.borderColor = '#d1d5db';
+  dropZone.style.background = '#f9fafb';
+});
+dropZone.addEventListener('drop', (e) => {
+  e.preventDefault();
+  dropZone.style.borderColor = '#d1d5db';
+  dropZone.style.background = '#f9fafb';
+  const files = Array.from(e.dataTransfer.files).filter(file => file.type.startsWith('image/'));
+  handleFiles(files);
+});
+fileInput.addEventListener('change', (e) => {
+  const files = Array.from(e.target.files);
+  handleFiles(files);
+});
+
+function handleFiles(files) {
+  files.forEach(file => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const dataUrl = e.target.result;
+      createCardForUploadedImage(file.name, dataUrl);
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+// Génère une carte pour une image uploadée (data URL)
+async function createCardForUploadedImage(filename, dataUrl){
+  const name = filename.replace(/\.[^/.]+$/, ""); // Nom sans extension
+
+  // Card elements
+  const card = document.createElement('div');
+  card.className = 'gallery-item';
+
+  const img = document.createElement('img');
+  img.src = dataUrl;
+  img.alt = filename;
+  img.className = 'image-preview';
+
+  const info = document.createElement('div');
+  info.className = 'info';
+
+  const idLabel = document.createElement('div');
+  idLabel.className = 'name';
+  idLabel.textContent = filename;
+
+  const btns = document.createElement('div');
+  btns.className = 'buttons';
+
+  // Générer QR avec la data URL
+  let qrDataURL = null;
+  try{
+    qrDataURL = await QRCode.toDataURL(dataUrl, { width: 360, margin: 1, color: { dark: '#000000', light: '#ffffff' } });
+  }catch(e){
+    console.error('Erreur génération QR pour', filename, e);
+  }
+
+  const qrImg = document.createElement('img');
+  qrImg.alt = 'QR ' + filename;
+  qrImg.className = 'qr-image';
+  if(qrDataURL) qrImg.src = qrDataURL;
+
+  const downloadQrBtn = document.createElement('a');
+  downloadQrBtn.className = 'download-btn';
+  downloadQrBtn.textContent = 'Télécharger QR';
+  downloadQrBtn.href = qrDataURL || '#';
+  downloadQrBtn.download = `qr_${name}.png`;
+
+  const copyLinkBtn = document.createElement('button');
+  copyLinkBtn.className = 'copy-btn';
+  copyLinkBtn.textContent = 'Copier data URL';
+  copyLinkBtn.onclick = async ()=>{
+    try{ await navigator.clipboard.writeText(dataUrl); copyLinkBtn.textContent = 'Copié!'; setTimeout(()=>copyLinkBtn.textContent='Copier data URL',1200); }catch(e){ alert('Impossible de copier'); }
+  };
+
+  btns.appendChild(downloadQrBtn);
+  btns.appendChild(copyLinkBtn);
+
+  info.appendChild(idLabel);
+  info.appendChild(btns);
+
+  const qrContainer = document.createElement('div');
+  qrContainer.className = 'qr-container';
+  qrContainer.appendChild(qrImg);
+
+  card.appendChild(img);
+  card.appendChild(qrContainer);
+  card.appendChild(info);
+
+  gallery.appendChild(card);
 }
 
 // Retourne l'URL de l'image locale ou null
@@ -153,7 +255,7 @@ async function generateAll(){
 generateAllBtn.addEventListener('click', ()=>{ generateAll(); });
 downloadAllQrBtn.addEventListener('click', ()=>{ downloadAllQRs(); });
 clearBtn.addEventListener('click', ()=>{ idsInput.value = ''; gallery.innerHTML=''; });
-helpBtn.addEventListener('click', ()=>{ alert('Collez un nom de fichier d\'image (ex: image.jpg) situé dans le dossier images/. Un nom par ligne ou séparés par virgule.'); });
+helpBtn.addEventListener('click', ()=>{ alert('Glissez des images dans la zone ou sélectionnez-les pour générer des QR instantanément. Ou entrez des noms de fichiers d\'images (ex: image.jpg) situés dans le dossier images/. Les QR sont uniques et liés à chaque image.'); });
 
 // Regénérer si la fenêtre change (pratique si la mise en page varie)
 window.addEventListener('resize', debounce(()=>{ /* nothing auto: attendre action utilisateur */ }, 200));

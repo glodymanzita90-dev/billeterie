@@ -316,11 +316,17 @@
 <body>
   <div class="card">
     <h2>Générateur de QR Code</h2>
-    <p class="hint">Collez plusieurs noms de fichiers d'images (ex: image1.jpg) situés dans le dossier images/. Pour chaque entrée, une vignette et un QR seront générés — chaque QR pointera directement vers l'image correspondante sur le site.</p>
+    <p class="hint">Glissez-déposez des images pour générer des QR instantanément, ou entrez des noms de fichiers d'images situés dans le dossier images/. Chaque QR pointera vers l'image correspondante.</p>
 
-    <label for="idsInput">Noms de fichiers d'images (séparez par saut de ligne ou virgule)</label>
-    <textarea id="idsInput" rows="6" style="width:100%;padding:10px;border-radius:6px;border:1px solid #ccc">image1.jpg
-image2.png</textarea>
+    <label for="fileInput">Glissez-déposez des images ici ou cliquez pour sélectionner</label>
+    <div id="dropZone" style="border: 2px dashed #d1d5db; border-radius: 8px; padding: 40px; text-align: center; background: #f9fafb; transition: all 0.3s ease; cursor: pointer;">
+      <p style="margin: 0; color: #6b7280;">📁 Glissez des images ici ou cliquez pour parcourir</p>
+      <input type="file" id="fileInput" multiple accept="image/*" style="display: none;">
+    </div>
+
+    <label for="idsInput">Ou entrez des noms de fichiers d'images (séparez par saut de ligne ou virgule)</label>
+    <textarea id="idsInput" rows="4" style="width:100%;padding:12px 16px;border:2px solid #d1d5db;border-radius:8px;font-size:16px;transition:all 0.3s ease;resize:vertical">BEYA KALUILA LEON.jpg
+CHRISTIAN 2.jpg</textarea>
 
     <div class="controls">
       <button id="generateAllBtn">Générer pour toutes</button>
