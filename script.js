@@ -171,6 +171,8 @@ async function generateAll(){
       gallery.appendChild(err);
     }
   }
+  // Télécharger automatiquement tous les QR après génération
+  setTimeout(() => downloadAllQRs(), 500); // Petit délai pour s'assurer que tout est rendu
 }
 
 generateAllBtn.addEventListener('click', ()=>{ generateAll(); });
