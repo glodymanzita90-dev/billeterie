@@ -16,6 +16,42 @@ function debounce(fn, wait){
   return (...args)=>{ clearTimeout(t); t = setTimeout(()=>fn(...args), wait); };
 }
 
+// Sanitize filename for downloads
+function sanitizeFilename(name){
+  return (name||'file').replace(/[^a-z0-9_.-]/gi, '_');
+}
+
+// Convert an image source (data: URL or external URL or object URL) to a JPEG Blob
+function toJpegBlobFromSrc(src, quality=0.92){
+  return new Promise((resolve, reject)=>{
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.onload = ()=>{
+      try{
+        const canvas = document.createElement('canvas');
+        canvas.width = img.naturalWidth || img.width;
+        canvas.height = img.naturalHeight || img.height;
+        const ctx = canvas.getContext('2d');
+        ctx.fillStyle = '#ffffff'; ctx.fillRect(0,0,canvas.width,canvas.height);
+        ctx.drawImage(img, 0, 0);
+        canvas.toBlob((blob)=>{
+          if(blob) resolve(blob); else reject(new Error('Conversion failed'));
+        }, 'image/jpeg', quality);
+      }catch(e){ reject(e); }
+    };
+    img.onerror = (e)=> reject(new Error('Image load error'));
+    img.src = src;
+  });
+}
+
+async function blobToJpegBlob(blob, quality=0.92){
+  const obj = URL.createObjectURL(blob);
+  try{
+    const jpeg = await toJpegBlobFromSrc(obj, quality);
+    return jpeg;
+  }finally{ URL.revokeObjectURL(obj); }
+}
+
 // Gestion du drag & drop
 dropZone.addEventListener('click', () => fileInput.click());
 dropZone.addEventListener('dragover', (e) => {
@@ -90,7 +126,31 @@ async function createCardForUploadedImage(filename, dataUrl){
   downloadQrBtn.className = 'download-btn';
   downloadQrBtn.textContent = 'Télécharger QR';
   downloadQrBtn.href = qrDataURL || '#';
-  downloadQrBtn.download = `qr_${name}.png`;
+  downloadQrBtn.download = `qr_${sanitizeFilename(name)}.png`;
+  // Force download as JPG: convert data URLs or fetched images to JPEG before saving
+  downloadQrBtn.download = `qr_${sanitizeFilename(name)}.jpg`;
+  downloadQrBtn.addEventListener('click', async (e)=>{
+    try{
+      const href = downloadQrBtn.href || '';
+      if(!href || href === '#'){ e.preventDefault(); return; }
+      e.preventDefault();
+      let jpegBlob = null;
+      if(href.startsWith('data:')){
+        jpegBlob = await toJpegBlobFromSrc(href);
+      } else {
+        const resp = await fetch(href);
+        if(!resp.ok) throw new Error('Network error');
+        const b = await resp.blob();
+        jpegBlob = await blobToJpegBlob(b);
+      }
+      const obj = URL.createObjectURL(jpegBlob);
+      const a = document.createElement('a');
+      a.href = obj;
+      a.download = downloadQrBtn.download;
+      document.body.appendChild(a); a.click(); document.body.removeChild(a);
+      URL.revokeObjectURL(obj);
+    }catch(err){ alert('Impossible de télécharger le QR: '+err.message); }
+  });
 
   const copyLinkBtn = document.createElement('button');
   copyLinkBtn.className = 'copy-btn';
@@ -117,11 +177,18 @@ async function createCardForUploadedImage(filename, dataUrl){
 }
 
 // Retourne l'URL de l'image locale ou null
+// Retourne les URLs candidates pour l'image (primary puis fallback)
 function getImageUrl(filename){
   if(!filename) return null;
   filename = filename.trim();
-  if(filename) return window.location.origin + '/images/' + filename;
-  return null;
+  if(!filename) return null;
+  const origin = window.location.origin;
+  // Par défaut le projet contient un dossier `qrcodes/` et un dossier `images/`.
+  // On tente d'abord `qrcodes/`, puis `images/` en fallback.
+  return {
+    primary: origin + '/qrcodes/' + filename,
+    fallback: origin + '/images/' + filename
+  };
 }
 
 // Génère une carte pour un nom de fichier d'image
@@ -135,10 +202,29 @@ async function createCardForToken(token){
   card.className = 'gallery-item';
 
   const img = document.createElement('img');
-  img.src = imageUrl;
+  img.src = imageUrl.primary;
   img.alt = token;
   img.className = 'image-preview';
-  img.onerror = ()=>{ img.style.objectFit = 'contain'; img.style.background='#fafafa'; };
+  img.onerror = async ()=>{
+    // Si le chemin primary échoue, tenter le fallback une seule fois
+    if(!img.dataset.triedFallback){
+      img.dataset.triedFallback = '1';
+      img.src = imageUrl.fallback;
+      // Régénérer le QR pour pointer vers la bonne URL (fallback)
+          try{
+            const newQr = await QRCode.toDataURL(imageUrl.fallback, { width: 360, margin: 1, color: { dark: '#000000', light: '#ffffff' } });
+            if(newQr){
+              qrImg.src = newQr;
+              downloadQrBtn.href = newQr;
+              downloadQrBtn.download = `qr_${sanitizeFilename(name)}.jpg`;
+              // Mettre à jour le lien copié
+              copyLinkBtn.onclick = async ()=>{ try{ await navigator.clipboard.writeText(imageUrl.fallback); copyLinkBtn.textContent = 'Copié!'; setTimeout(()=>copyLinkBtn.textContent='Copier lien',1200); }catch(e){ alert('Impossible de copier'); } };
+            }
+          }catch(e){ /* ignore */ }
+      return;
+    }
+    img.style.objectFit = 'contain'; img.style.background='#fafafa';
+  };
 
   const info = document.createElement('div');
   info.className = 'info';
@@ -154,7 +240,9 @@ async function createCardForToken(token){
   // Générer QR en dataURL — le QR encode le lien direct de l'image locale
   let qrDataURL = null;
   try{
-    qrDataURL = await QRCode.toDataURL(imageUrl, { width: 360, margin: 1, color: { dark: '#000000', light: '#ffffff' } });
+    // QR encode l'URL de l'image (primary par défaut)
+    const targetUrl = (typeof imageUrl === 'string') ? imageUrl : (imageUrl.primary || imageUrl);
+    qrDataURL = await QRCode.toDataURL(targetUrl, { width: 360, margin: 1, color: { dark: '#000000', light: '#ffffff' } });
   }catch(e){
     console.error('Erreur génération QR pour', token, e);
   }
@@ -169,17 +257,66 @@ async function createCardForToken(token){
   downloadQrBtn.className = 'download-btn';
   downloadQrBtn.textContent = 'Télécharger QR';
   downloadQrBtn.href = qrDataURL || '#';
-  downloadQrBtn.download = `qr_${name}.png`;
+  downloadQrBtn.download = `qr_${sanitizeFilename(name)}.jpg`;
+  downloadQrBtn.addEventListener('click', async (e)=>{
+    try{
+      const href = downloadQrBtn.href || '';
+      if(!href || href === '#'){ e.preventDefault(); return; }
+      e.preventDefault();
+      let jpegBlob = null;
+      if(href.startsWith('data:')){
+        jpegBlob = await toJpegBlobFromSrc(href);
+      } else {
+        const resp = await fetch(href);
+        if(!resp.ok) throw new Error('Network error');
+        const b = await resp.blob();
+        jpegBlob = await blobToJpegBlob(b);
+      }
+      const obj = URL.createObjectURL(jpegBlob);
+      const a = document.createElement('a');
+      a.href = obj;
+      a.download = downloadQrBtn.download;
+      document.body.appendChild(a); a.click(); document.body.removeChild(a);
+      URL.revokeObjectURL(obj);
+    }catch(err){ alert('Impossible de télécharger le QR: '+err.message); }
+  });
 
   const copyLinkBtn = document.createElement('button');
   copyLinkBtn.className = 'copy-btn';
   copyLinkBtn.textContent = 'Copier lien';
   copyLinkBtn.onclick = async ()=>{
-    try{ await navigator.clipboard.writeText(imageUrl); copyLinkBtn.textContent = 'Copié!'; setTimeout(()=>copyLinkBtn.textContent='Copier lien',1200); }catch(e){ alert('Impossible de copier'); }
+    try{ await navigator.clipboard.writeText(imageUrl.primary); copyLinkBtn.textContent = 'Copié!'; setTimeout(()=>copyLinkBtn.textContent='Copier lien',1200); }catch(e){ alert('Impossible de copier'); }
+  };
+
+  // Bouton Imprimer: ouvre une fenêtre contenant l'image et le QR côte-à-côte puis déclenche print
+  const printBtn = document.createElement('button');
+  printBtn.className = 'print-btn';
+  printBtn.textContent = 'Imprimer';
+  printBtn.onclick = async ()=>{
+    // S'assurer que le QR existe (générer si nécessaire)
+    let finalQr = qrDataURL;
+    if(!finalQr){
+      try{ finalQr = await QRCode.toDataURL(imageUrl.primary, { width: 360, margin: 1 }); }catch(e){}
+    }
+    const finalImgSrc = img.src || imageUrl.primary;
+    const popup = window.open('', '_blank');
+    if(!popup) { alert('Autorisez les popups pour imprimer.'); return; }
+    const html = `<!doctype html><html><head><meta charset="utf-8"><title>Impression QR</title>
+      <style>body{font-family:Arial,Helvetica,sans-serif;margin:20px} .wrap{display:flex;gap:20px;align-items:center} img{max-width:45vw;max-height:80vh;border:1px solid #ddd;padding:6px;border-radius:8px}</style>
+      </head><body>
+      <h3>${token}</h3>
+      <div class="wrap">
+        <img src="${finalImgSrc}" alt="image" />
+        <img src="${finalQr||''}" alt="qr" />
+      </div>
+      <script>window.onload=()=>{ setTimeout(()=>{ window.print(); },400); };</script>
+      </body></html>`;
+    popup.document.open(); popup.document.write(html); popup.document.close();
   };
 
   btns.appendChild(downloadQrBtn);
   btns.appendChild(copyLinkBtn);
+  btns.appendChild(printBtn);
 
   info.appendChild(idLabel);
   info.appendChild(btns);
@@ -204,15 +341,32 @@ async function downloadAllQRs(){
 
   const zip = new JSZip();
   let count = 0;
-
   for(const card of cards){
     const img = card.querySelector('img[alt^="QR"]');
-    if(img && img.src.startsWith('data:image/png;base64,')){
-      const name = img.alt.replace('QR ', '').replace(/\.[^/.]+$/, ""); // Nom sans extension
-      const base64Data = img.src.split(',')[1];
-      zip.file(`qr_${name}.png`, base64Data, {base64: true});
-      count++;
-    }
+    if(!img) continue;
+    const name = img.alt.replace('QR ', '').replace(/\.[^/.]+$/, ""); // Nom sans extension
+    try{
+      if(img.src && img.src.startsWith('data:')){
+        try{
+          const jpegBlob = await toJpegBlobFromSrc(img.src);
+          const ab = await jpegBlob.arrayBuffer();
+          zip.file(`qr_${sanitizeFilename(name)}.jpg`, ab);
+          count++;
+        }catch(e){ /* skip */ }
+      } else if(img.src){
+        // Fetch the image and convert to JPEG then add binary content to the zip
+        try{
+          const resp = await fetch(img.src);
+          if(resp.ok){
+            const b = await resp.blob();
+            const jpegBlob = await blobToJpegBlob(b);
+            const ab = await jpegBlob.arrayBuffer();
+            zip.file(`qr_${sanitizeFilename(name)}.jpg`, ab);
+            count++;
+          }
+        }catch(e){ /* skip this image */ }
+      }
+    }catch(e){ /* continue on error */ }
   }
 
   if(count === 0){
